@@ -14,6 +14,7 @@
     "nodemon": "^3.1.4"
   },
   "dependencies": {
+    "@ai-sdk/google": "^0.0.26",
     "mongoose": "^8.5.0",
     "telegraf": "^4.16.3"
   }

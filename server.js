@@ -3,6 +3,7 @@ import { message } from "telegraf/filters";
 import { connectDB } from "./src/config/db.js";
 import { User } from "./src/model/User.js";
 import { Event } from "./src/model/Event.js";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 const bot = new Telegraf(process.env.TELEGRAM_API);
 
@@ -37,10 +38,42 @@ bot.start(async (ctx) => {
   }
 });
 
+bot.command("generate", async (ctx) => {
+  const from = ctx.update.message.from;
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // get events for the user
+  const events = await Event.find({
+    tgId: from.id,
+    createdAt: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+  });
+
+  if (events.length == 0) {
+    await ctx.reply("No events for the day.");
+    return;
+  }
+
+  console.log("Events", events);
+  // make openAI API call
+
+  // store token count
+
+  // send response
+
+  await ctx.reply("doing something");
+});
+
 bot.on(message("text"), async (ctx) => {
   const from = ctx.update.message.from;
   const message = ctx.update.message.text;
-  console.log(from);
   try {
     console.log(`User ${from.first_name} said: ${message}`);
     await Event.create({
