@@ -3,11 +3,14 @@ import { message } from "telegraf/filters";
 import { connectDB } from "./src/config/db.js";
 import { User } from "./src/model/User.js";
 import { Event } from "./src/model/Event.js";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const bot = new Telegraf(process.env.TELEGRAM_API);
 
 connectDB();
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 bot.start(async (ctx) => {
   const from = ctx.update.message.from;
@@ -60,15 +63,46 @@ bot.command("generate", async (ctx) => {
     await ctx.reply("No events for the day.");
     return;
   }
-
-  console.log("Events", events);
   // make openAI API call
+  try {
+    // const result = await model.generateContent({
+    //   message: [
+    //     {
+    //       role: "system",
+    //       content:
+    //         "Act as a senior copywriter, you write highly engaging posts for linkedIn, facebook and twitter using provided thoughts/events through the day.",
+    //     },
+    //     {
+    //       role: "user",
+    //       content: `Write like a human, for human. Craft three engaging social media posts tailored for linkedIn, facebook and twitter and twitter audiences. Use simple language. Use given time labels just to understand the order of the event, don't mention the iem in the posts, Each post should creatively highlight the following events. Ensure the tone is conversational an Impactful. Focus on Engaging the respective platforms's audience. encouraging interaction, and driving interest in the events:
+    //     ${events.map((event) => event.message).join(", ")}
+    //     `,
+    //     },
+    //   ],
+    //   generationConfig: {
+    //     maxOutputTokens: 100,
+    //   },
+    // });
 
-  // store token count
+    const msg = `Act as a senior copywriter, you write highly engaging posts for linkedIn, facebook and twitter using provided thoughts/events through the day.
+    Write like a human, for human. Craft three engaging social media posts tailored for linkedIn, facebook and twitter and twitter audiences. Use simple language. Use given time labels just to understand the order of the event, don't mention the iem in the posts, Each post should creatively highlight the following events. Ensure the tone is conversational an Impactful. Focus on Engaging the respective platforms's audience. encouraging interaction, and driving interest in the events:
+        ${events.map((event) => event.message).join(", ")}
+    `;
 
-  // send response
+    // store token count
 
-  await ctx.reply("doing something");
+    const result = await model.generateContent(msg);
+    const response = result.response;
+
+    const text = response.text();
+    console.log(text);
+    // send response
+    await ctx.reply("doing something");
+
+  } catch (error) {
+    console.log(error);
+    await ctx.reply("facing some error  connecting with google api");
+  }
 });
 
 bot.on(message("text"), async (ctx) => {
@@ -88,7 +122,6 @@ bot.on(message("text"), async (ctx) => {
     await ctx.reply("Facing some difficulties, plz try again later.");
   }
 });
-
 
 bot.launch();
 
