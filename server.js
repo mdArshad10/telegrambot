@@ -2,7 +2,7 @@ import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { connectDB } from "./src/config/db.js";
 import { User } from "./src/model/User.js";
-import { Event } from "./src/model/Event.js";
+import { Events } from "./src/model/Event.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const bot = new Telegraf(process.env.TELEGRAM_API);
@@ -43,6 +43,10 @@ bot.start(async (ctx) => {
 
 bot.command("generate", async (ctx) => {
   const from = ctx.update.message.from;
+  
+  const { message_id } = await ctx.reply(`
+    Hey ${from.first_name}, kindly wait for a moment. I am creating posts for you🚀⏳.
+    `);
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -51,7 +55,7 @@ bot.command("generate", async (ctx) => {
   endOfDay.setHours(23, 59, 59, 999);
 
   // get events for the user
-  const events = await Event.find({
+  const events = await Events.find({
     tgId: from.id,
     createdAt: {
       $gte: startOfDay,
@@ -60,45 +64,39 @@ bot.command("generate", async (ctx) => {
   });
 
   if (events.length == 0) {
+    await ctx.deleteMessage(message_id);
     await ctx.reply("No events for the day.");
     return;
   }
-  // make openAI API call
-  try {
-    // const result = await model.generateContent({
-    //   message: [
-    //     {
-    //       role: "system",
-    //       content:
-    //         "Act as a senior copywriter, you write highly engaging posts for linkedIn, facebook and twitter using provided thoughts/events through the day.",
-    //     },
-    //     {
-    //       role: "user",
-    //       content: `Write like a human, for human. Craft three engaging social media posts tailored for linkedIn, facebook and twitter and twitter audiences. Use simple language. Use given time labels just to understand the order of the event, don't mention the iem in the posts, Each post should creatively highlight the following events. Ensure the tone is conversational an Impactful. Focus on Engaging the respective platforms's audience. encouraging interaction, and driving interest in the events:
-    //     ${events.map((event) => event.message).join(", ")}
-    //     `,
-    //     },
-    //   ],
-    //   generationConfig: {
-    //     maxOutputTokens: 100,
-    //   },
-    // });
 
+  try {
+    // make API Calls in google generative AI
     const msg = `Act as a senior copywriter, you write highly engaging posts for linkedIn, facebook and twitter using provided thoughts/events through the day.
     Write like a human, for human. Craft three engaging social media posts tailored for linkedIn, facebook and twitter and twitter audiences. Use simple language. Use given time labels just to understand the order of the event, don't mention the iem in the posts, Each post should creatively highlight the following events. Ensure the tone is conversational an Impactful. Focus on Engaging the respective platforms's audience. encouraging interaction, and driving interest in the events:
         ${events.map((event) => event.message).join(", ")}
     `;
 
-    // store token count
-
     const result = await model.generateContent(msg);
     const response = result.response;
 
     const text = response.text();
-    console.log(text);
-    // send response
-    await ctx.reply("doing something");
 
+    // store token count
+    await User.findOneAndUpdate(
+      { tgId: from.id },
+      {
+        $inc: {
+          promptTokens: response.usageMetadata.promptTokenCount,
+          completeTokens: response.usageMetadata.totalTokenCount,
+        },
+      }
+    );
+
+    // send response
+    await ctx.reply(text);
+
+    // delete message
+    await ctx.deleteMessage(message_id);
   } catch (error) {
     console.log(error);
     await ctx.reply("facing some error  connecting with google api");
@@ -110,7 +108,7 @@ bot.on(message("text"), async (ctx) => {
   const message = ctx.update.message.text;
   try {
     console.log(`User ${from.first_name} said: ${message}`);
-    await Event.create({
+    await Events.create({
       message,
       tgId: from.id,
     });
