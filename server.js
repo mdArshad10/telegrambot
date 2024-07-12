@@ -32,8 +32,7 @@ bot.start(async (ctx) => {
       }
     );
     await ctx.reply(`
-      Hey! ${from.first_name}, Welcome. I will be writing highly engaging social media posts for you 🚀 Just keep 
-      feeding me with the events throught the day. Let's shine on Social media ✨
+      Hey! ${from.first_name}, Welcome. I will be writing highly engaging social media posts for you 🚀 Just keep feeding me with the events throught the day. Let's shine on Social media ✨
       `);
   } catch (error) {
     console.log(error);
@@ -43,7 +42,7 @@ bot.start(async (ctx) => {
 
 bot.command("generate", async (ctx) => {
   const from = ctx.update.message.from;
-  
+
   const { message_id } = await ctx.reply(`
     Hey ${from.first_name}, kindly wait for a moment. I am creating posts for you🚀⏳.
     `);
