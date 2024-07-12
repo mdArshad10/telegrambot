@@ -1,8 +1,8 @@
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
-import { connectDB } from "./src/config/db.js";
-import { User } from "./src/model/User.js";
-import { Events } from "./src/model/Event.js";
+import { connectDB } from "./config/db.js";
+import { User } from "./model/User.js";
+import { Events } from "./model/Event.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const bot = new Telegraf(process.env.TELEGRAM_API);
