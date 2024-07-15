@@ -4,12 +4,13 @@ import { connectDB } from "./config/db.js";
 import { User } from "./model/User.js";
 import { Events } from "./model/Event.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { googleAPI, telegramAPI } from "./constent.js";
 
-const bot = new Telegraf(process.env.TELEGRAM_API);
+const bot = new Telegraf(telegramAPI);
 
 connectDB();
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const genAI = new GoogleGenerativeAI(googleAPI);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 bot.start(async (ctx) => {
